@@ -107,7 +107,7 @@ This is the current and preferred provider used for valuations, it is a fairly m
 
 The OpenAPI Specification can be found [here](http://localhost:3001/docs).
 
-The URI for this test stub in Mocky is https://run.mocky.io/v3/9245229e-5c57-44e1-964b-36c7fb29168b.
+The URI for this test stub in Mocky is https://run.mocky.io/v3/f656eafd-c903-43f9-860d-4c90f8d3e143.
 
 ### Premium Car Valuations
 
@@ -115,8 +115,17 @@ This is the proposed fallback provider to be used for valuations, it is an old s
 
 The OpenAPI Specification can be found [here](http://localhost:3002/docs).
 
-The URI for this test stub in Mocky is https://run.mocky.io/v3/0dfda26a-3a5a-43e5-b68c-51f148eda473.
+The URI for this test stub in Mocky is https://run.mocky.io/v3/2bf9a150-258e-4912-8d3f-7f7f77cf0f0f.
 
 
 # Candidate Notes
-Here is a place for you to put any notes regarding the changes you made and the reasoning and what further changes you wish to suggest.
+
+The immediate first improvement I would make would be to complete the final task of storing request data in an audit table. However, I have already gone somewhat beyond the suggested two-hour limit and I do not consider it to be a fair representation of my ability to disregard this limit entirely where others may not. I don't believe it would be an especially difficult task, as most of the fields can be taken from a combination of the response and request objects. A simple table using an autoincrementing ID column and using VRM as a foreign key would likely be suitable.
+
+Next, I would suggesting adding some automatic retry logic to valuation-calculator. The brief did not specify whether retries should be performed automatically, so I opted not to go off-piste, but in a real-world scenario I would imagine a small number of retries. On a related note, if the first call to SuperCar fails, this creates a 100% failure rate and immediately switches to PremiumCar. In a real-world scenario, I imagine a minimum-call threshold would be more appropriate, to prevent the more expensive provider being called if a single request fails.
+
+Finally, with more time I would like to refactor the valuation-calculator. It is a long and complex method with multiple potential errors throw in different scenarios, and the potential response of two different endpoints wrapped into a single function. This would likely be painful to maintain going forward, so breaking this down into smaller, cleaner functions would be preferable.
+
+A change that I would make to the setup/ brief would be to have a working test-instance of the database. Being able to work with a functional repository that was torn down between specs (or at least between each test run) would - I believe - be beneficial in creating tests more reflective of real-world situations.
+
+I apologise if any of my solutions are somewhat unorthodox. This tech test has been my first time working with Vitest, Fastify, and Axios. Typically, I work with Jest and Express with pg for database querying. I believe I've managed to make a solution that meets the completed sections of the spec, but reading documentation can only get you so close to typical convention as opposed to purely functional code.

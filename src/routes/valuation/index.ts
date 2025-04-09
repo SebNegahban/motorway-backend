@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { VehicleValuationRequest } from './types/vehicle-valuation-request';
-import { fetchValuationFromSuperCarValuation } from '@app/super-car/super-car-valuation';
-import { VehicleValuation } from '@app/models/vehicle-valuation';
+import ValuationRepository from '@app/data/valuation-repository';
+import ValuationCalculator from '@app/services/valuation-calculator';
 
 export function valuationRoutes(fastify: FastifyInstance) {
   fastify.get<{
@@ -9,8 +9,8 @@ export function valuationRoutes(fastify: FastifyInstance) {
       vrm: string;
     };
   }>('/valuations/:vrm', async (request, reply) => {
-    const valuationRepository = fastify.orm.getRepository(VehicleValuation);
     const { vrm } = request.params;
+    const valuationRepository = new ValuationRepository(fastify)
 
     if (vrm === null || vrm === '' || vrm.length > 7) {
       return reply
@@ -18,7 +18,7 @@ export function valuationRoutes(fastify: FastifyInstance) {
         .send({ message: 'vrm must be 7 characters or less', statusCode: 400 });
     }
 
-    const result = await valuationRepository.findOneBy({ vrm: vrm });
+    const result = await valuationRepository.findOneByVrm(vrm);
 
     if (result == null) {
       return reply
@@ -38,9 +38,10 @@ export function valuationRoutes(fastify: FastifyInstance) {
       vrm: string;
     };
   }>('/valuations/:vrm', async (request, reply) => {
-    const valuationRepository = fastify.orm.getRepository(VehicleValuation);
     const { vrm } = request.params;
     const { mileage } = request.body;
+    const valuationRepository = new ValuationRepository(fastify)
+    const valuationCalculator = new ValuationCalculator()
 
     if (vrm.length > 7) {
       return reply
@@ -57,17 +58,25 @@ export function valuationRoutes(fastify: FastifyInstance) {
         });
     }
 
-    const valuation = await fetchValuationFromSuperCarValuation(vrm, mileage);
+    const existingValuation = await valuationRepository.findOneByVrm(vrm)
+
+    if(existingValuation){
+      return existingValuation
+    }
+    
+    const newValuation = await valuationCalculator.getValue(vrm, mileage).catch((error) => {
+      return reply.code(error.cause?.code || 500).send(
+        { message: error.message, statusCode: error.cause?.code || 500 }
+      )   
+    })
 
     // Save to DB.
-    await valuationRepository.insert(valuation).catch((err) => {
-      if (err.code !== 'SQLITE_CONSTRAINT') {
-        throw err;
-      }
-    });
+    if(newValuation){
+      
+      await valuationRepository.createValuation(newValuation)
+      fastify.log.info('Valuation created: ', newValuation);
 
-    fastify.log.info('Valuation created: ', valuation);
-
-    return valuation;
+      return newValuation;
+    }
   });
 }

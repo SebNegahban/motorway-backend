@@ -31,7 +31,7 @@ paths:
               schema:
                 $ref: '#/definitions/ValuationResponse'
       servers:
-        - url: https://run.mocky.io/v3/9245229e-5c57-44e1-964b-36c7fb29168b
+        - url: https://run.mocky.io/v3/f656eafd-c903-43f9-860d-4c90f8d3e143
 definitions:
   ValuationResponse:
     properties:
